@@ -4,7 +4,8 @@ import Web3Modal from "web3modal";
 import WalletConnect from "@walletconnect/web3-provider";
 import { useDispatch, useSelector } from "react-redux";
 import { NotificationManager } from "react-notifications";
-import { setConnectedChainId, setConnectedWalletAddress, updateGlobalWeb3 } from "../store/actions/auth.actions";
+import { setConnectedChainId, setConnectedWalletAddress } from "../store/actions/auth.actions";
+import { UPDATE_WEB3, SET_CONNECTED_WALLET_ADDRESS, SET_CONNECTED_CHAIN_ID } from "../actions/action.types";
 import { ETHEREUM_CHAIN_ID } from "../env";
 
 const providerOptions = {
@@ -29,7 +30,6 @@ const web3Modal = new Web3Modal({
 });
 
 const MainLayout = ({ children }) => {
-  
   const globalAccount = useSelector((state) => state.auth.currentWallet);
   const globalWeb3 = useSelector((state) => state.auth.globalWeb3);
   const claimableAmount = useSelector((state) => state.auth.balance);
@@ -40,7 +40,6 @@ const MainLayout = ({ children }) => {
   const [web3Provider, setWeb3Provider] = useState({});
   const [compressedAddress, setCompressedAddress] = useState("");
 
-
   const makeCompressedAccount = (accountStr) => {
     return (
       accountStr.substring(0, 6) +
@@ -48,17 +47,17 @@ const MainLayout = ({ children }) => {
       accountStr.substring(accountStr.length - 4, accountStr.length)
     );
   };
-  
+
   const onClickConnectWallet = async () => {
     try {
       const provider = await web3Modal.connect();
 
       const web3 = new Web3(provider);
       setWeb3Provider(provider);
-      dispatch(updateGlobalWeb3(web3));
+      dispatch({ type: UPDATE_WEB3, payload: web3 });
       const accounts = await web3.eth.getAccounts();
       const chainId = await web3.eth.getChainId();
-      dispatch(setConnectedChainId(chainId));
+      dispatch({ type: SET_CONNECTED_CHAIN_ID, payload: chainId });
       console.log("chainId = ", chainId);
       console.log("typeof chainId = ", typeof chainId);
 
@@ -66,22 +65,22 @@ const MainLayout = ({ children }) => {
         console.log("accounts[0] = ", accounts[0]);
         setCompressedAddress(makeCompressedAccount(accounts[0]));
         setConnected(true);
-        dispatch(setConnectedWalletAddress(accounts[0]));
-        
-        if(globalChainId === ETHEREUM_CHAIN_ID) 
-          NotificationManager.success("You've connected a wallet account. "+makeCompressedAccount(accounts[0]), "Success", 5000, () => {});
+        dispatch({ type: SET_CONNECTED_WALLET_ADDRESS, payload: accounts[0] });
+
+        if (globalChainId === ETHEREUM_CHAIN_ID) 
+          NotificationManager.success("You've connected a wallet account. " + makeCompressedAccount(accounts[0]), "Success", 5000, () => {});
       } else {
         setCompressedAddress("");
         setConnected(false);
-        dispatch(setConnectedChainId(undefined));
-        dispatch(setConnectedWalletAddress(undefined));
+        dispatch({ type: SET_CONNECTED_CHAIN_ID, payload: undefined });
+        dispatch({ type: SET_CONNECTED_WALLET_ADDRESS, payload: undefined });
       }
     } catch (error) {
       setCompressedAddress("");
       console.error(error);
       setConnected(false);
-      dispatch(setConnectedChainId(undefined));
-      dispatch(setConnectedWalletAddress(undefined));
+      dispatch({ type: SET_CONNECTED_CHAIN_ID, payload: undefined });
+      dispatch({ type: SET_CONNECTED_WALLET_ADDRESS, payload: undefined });
     }
   };
 
@@ -90,8 +89,8 @@ const MainLayout = ({ children }) => {
     try {
       await web3Modal.clearCachedProvider();
       setCompressedAddress("");
-      dispatch(setConnectedChainId(undefined));
-      dispatch(setConnectedWalletAddress(undefined));
+      dispatch({ type: SET_CONNECTED_CHAIN_ID, payload: undefined });
+      dispatch({ type: SET_CONNECTED_WALLET_ADDRESS, payload: undefined });
     } catch (e) {
       console.log(" onClickDisconnect() exception : ", e);
     }
@@ -102,16 +101,16 @@ const MainLayout = ({ children }) => {
     if (web3Provider?.on) {
       const handleAccountsChanged = (accounts) => {
         if (accounts[0]) {
-          dispatch(setConnectedWalletAddress(accounts[0]));
+          dispatch({ type: SET_CONNECTED_WALLET_ADDRESS, payload: accounts[0] });
           setConnected(true);
         } else {
-          dispatch(setConnectedWalletAddress(undefined));
+          dispatch({ type: SET_CONNECTED_WALLET_ADDRESS, payload: undefined });
           setConnected(false);
         }
       };
 
       const handleChainChanged = (chainId) => {
-        dispatch(setConnectedChainId(chainId));
+        dispatch({ type: SET_CONNECTED_CHAIN_ID, payload: chainId });
       };
 
       const handleDisconnect = () => {
